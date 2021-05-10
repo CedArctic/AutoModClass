@@ -98,3 +98,8 @@ softmax_layer = tf.keras.layers.Dense(8, activation='softmax')
 full_model = tf.keras.Sequential([vgg16_model, flat_layer, dense1_layer, dense2_layer, dense3_layer, softmax_layer])
 full_model.summary()
 
+# Compile and train model
+full_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+              loss=tf.keras.losses.SparseCategoricalCrossentropy,
+              metrics=[tf.keras.metrics.Accuracy])
+model.fit(train_ds, epochs=20, callbacks=..., validation_data=val_ds)
