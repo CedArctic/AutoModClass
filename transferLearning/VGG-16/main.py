@@ -45,5 +45,14 @@ vgg16_model.summary()
 # Freeze VGG-16
 vgg16_model.trainable = False
 
-# Add dense layers
-d1 = tf.keras.layers.Flatten
+# Flatten, dense and softmax layers
+flat_layer = tf.keras.layers.Flatten()
+dense1_layer = tf.keras.layers.Dense(100, activation='relu')
+dense2_layer = tf.keras.layers.Dense(100, activation='relu')
+dense3_layer = tf.keras.layers.Dense(50, activation='relu')
+softmax_layer = tf.keras.layers.Dense(8, activation='softmax')
+
+# Build full model and print its summary
+full_model = tf.keras.Sequential([vgg16_model, flat_layer, dense1_layer, dense2_layer, dense3_layer, softmax_layer])
+full_model.summary()
+
