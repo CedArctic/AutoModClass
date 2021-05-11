@@ -19,6 +19,7 @@ train_img_count = len(list(train_img_dir.glob('*/*/*.png')))
 
 # Model Parameters
 batch_size = 32
+epochs = 100
 img_height = 224
 img_width = 224
 img_channels = 3
@@ -34,24 +35,44 @@ mod_idx = {}
 for index, mod in enumerate(mod_schemes):
     mod_idx[mod] = index
 
-# Allocate and populate labels array traversing the Root -> (SNRs) -> (Modulation Schemes) tree
-labels_idx = 0
-#TODO: change to train_img_count
-train_labels = np.zeros(val_img_count, dtype=int)
+# Allocate and populate labels array traversing the Root -> (SNRs) -> (Modulation Schemes) tree for the training and
+# validation datasets
+# Label arrays indices
+train_labels_idx = 0
+val_labels_idx = 0
+# Label arrays
+train_labels = np.zeros(train_img_count, dtype=int)
+val_labels = np.zeros(val_img_count, dtype=int)
 for snr in snrs:
     for mod in mod_schemes:
-        snr_mod_samples = len(list(val_img_dir.glob('{}_db/{}/*.png'.format(snr, mod))))
-        train_labels[labels_idx:labels_idx+snr_mod_samples] = mod_idx[mod] * np.ones(snr_mod_samples, dtype=int)
-        labels_idx += snr_mod_samples
+        # Number of samples for a specific SNR and modulation scheme in each dataset
+        train_snr_mod_samples = len(list(train_img_dir.glob('{}_db/{}/*.png'.format(snr, mod))))
+        val_snr_mod_samples = len(list(val_img_dir.glob('{}_db/{}/*.png'.format(snr, mod))))
+        # Write into label arrays the appropriate number of modulation scheme indices according to the number of samples
+        train_labels[train_labels_idx:train_labels_idx + train_snr_mod_samples] = mod_idx[mod] * np.ones(train_snr_mod_samples, dtype=int)
+        val_labels[val_labels_idx:val_labels_idx + val_snr_mod_samples] = mod_idx[mod] * np.ones(val_snr_mod_samples, dtype=int)
+        # Increment the label array indices
+        train_labels_idx += train_snr_mod_samples
+        val_labels_idx += val_snr_mod_samples
 
 # Form dataset
 train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    val_img_dir,
+    train_img_dir,
     labels=train_labels.tolist(),
     label_mode='int',
     # validation_split=0.2,
     # subset="training",
-    seed=123,
+    # seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    val_img_dir,
+    labels=val_labels.tolist(),
+    label_mode='int',
+    # validation_split=0.2,
+    # subset="training",
+    # seed=123,
     image_size=(img_height, img_width),
     batch_size=batch_size)
 
@@ -100,6 +121,7 @@ full_model.summary()
 
 # Compile and train model
 full_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-              loss=tf.keras.losses.SparseCategoricalCrossentropy,
-              metrics=[tf.keras.metrics.Accuracy])
-model.fit(train_ds, epochs=20, callbacks=..., validation_data=val_ds)
+                   loss=tf.keras.losses.SparseCategoricalCrossentropy,
+                   metrics=[tf.keras.metrics.Accuracy])
+#TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
+full_model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds)
