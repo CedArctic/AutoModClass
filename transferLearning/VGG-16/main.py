@@ -27,7 +27,7 @@ img_channels = 3
 # Modulation Schemes and SNRs sorted alphanumerically (the way TensorFlow reads training samples)
 mod_schemes = ['16APSK', '16PAM', '16QAM', '4PAM', '64APSK', '64QAM', '8PSK', 'QPSK']
 mod_schemes.sort()
-snrs = [0, 5]
+snrs = [0, 5, 10, 15]
 snrs.sort()
 
 # Dictionary with index for each label
