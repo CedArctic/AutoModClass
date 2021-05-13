@@ -124,4 +124,8 @@ full_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
                    loss=tf.keras.losses.SparseCategoricalCrossentropy,
                    metrics=[tf.keras.metrics.Accuracy])
 #TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
-full_model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds)
+history = full_model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds)
+
+# Save Model
+os.makedirs('trained_model')
+full_model.save('trained_model/vgg-16-tl-ds1-13-5')
