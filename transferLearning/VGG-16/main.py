@@ -2,8 +2,6 @@ import numpy as np
 import os
 import pathlib
 import pickle
-import PIL
-import PIL.Image
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
@@ -64,6 +62,7 @@ train_ds = tf.keras.preprocessing.image_dataset_from_directory(
     # validation_split=0.2,
     # subset="training",
     # seed=123,
+    shuffle=True,
     image_size=(img_height, img_width),
     batch_size=batch_size)
 
@@ -74,6 +73,7 @@ val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     # validation_split=0.2,
     # subset="training",
     # seed=123,
+    shuffle=True,
     image_size=(img_height, img_width),
     batch_size=batch_size)
 
