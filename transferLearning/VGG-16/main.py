@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pathlib
+import pickle
 import PIL
 import PIL.Image
 import matplotlib.pyplot as plt
@@ -129,3 +130,19 @@ history = full_model.fit(train_ds, batch_size=batch_size, epochs=epochs, validat
 # Save Model
 os.makedirs('trained_model')
 full_model.save('trained_model/vgg-16-tl-ds1-13-5')
+
+# Save training history
+os.makedirs('history')
+train_accuracy = history.history['accuracy']
+val_accuracy = history.history['val_accuracy']
+train_loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+np.savetxt('history/train_accuracy.csv', [train_accuracy], delimiter=',', fmt='%d', header='Training Accuracy')
+np.savetxt('history/val_accuracy.csv', [val_accuracy], delimiter=',', fmt='%d', header='Validation Accuracy')
+np.savetxt('history/train_loss.csv', [train_loss], delimiter=',', fmt='%d', header='Training Loss')
+np.savetxt('history/val_loss.csv', [val_loss], delimiter=',', fmt='%d', header='Validation Loss')
+
+# Save history as dictionary
+with open('history/trainHistoryDict', 'wb') as file_pi:
+    pickle.dump(history.history, file_pi)
