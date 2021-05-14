@@ -6,19 +6,13 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 from tensorflow import keras
-from utils.plotting import plotAccLoss
 import seaborn as sn
 
-# Import model
-model = keras.models.load_model('transferLearning/VGG-16/trained_model/vgg-16-tl-ds1-13-5')
+from utils.plotting import plotAccLoss
+from utils.data import load_data
+from transferLearning.vgg16 import vgg16
 
-# Dataset directories
-train_img_dir = pathlib.Path('dataset/training')
-test_img_dir = pathlib.Path('dataset/test')
-
-# Count images
-train_img_count = len(list(train_img_dir.glob('*/*/*.png')))
-test_img_count = len(list(test_img_dir.glob('*/*/*.png')))
+# === Load Data ===
 
 # Dataset Parameters
 img_height = 224
@@ -32,64 +26,61 @@ mod_schemes.sort()
 snrs = [0, 5, 10, 15]
 snrs.sort()
 
-# Dictionary with index for each label
-mod_idx = {}
-for index, mod in enumerate(mod_schemes):
-    mod_idx[mod] = index
+# Load data
+train_ds, val_ds, test_ds, test_labels = load_data(mod_schemes, snrs, img_height, img_width, batch_size, normalize=True)
 
-# Allocate and populate labels array traversing the Root -> (SNRs) -> (Modulation Schemes) tree for the datasets
-# Label arrays indices
-train_labels_idx = 0
-test_labels_idx = 0
+# Explore Dataset
+plt.figure(figsize=(10, 10))
+for images, labels in train_ds.take(1):
+    for i in range(9):
+        ax = plt.subplot(3, 3, i + 1)
+        plt.imshow(images[i].numpy().astype("uint8"))
+        plt.title(mod_schemes[labels[i]])
+        plt.axis("off")
 
-# Label arrays
-train_labels = np.zeros(train_img_count, dtype=int)
-test_labels = np.zeros(test_img_count, dtype=int)
-for snr in snrs:
-    for mod in mod_schemes:
-        # Number of samples for a specific SNR and modulation scheme in each dataset
-        train_snr_mod_samples = len(list(train_img_dir.glob('{}_db/{}/*.png'.format(snr, mod))))
-        val_snr_mod_samples = len(list(test_img_dir.glob('{}_db/{}/*.png'.format(snr, mod))))
-        # Write into label arrays the appropriate number of modulation scheme indices according to the number of samples
-        train_labels[train_labels_idx:train_labels_idx + train_snr_mod_samples] = mod_idx[mod] * np.ones(train_snr_mod_samples, dtype=int)
-        test_labels[test_labels_idx:test_labels_idx + val_snr_mod_samples] = mod_idx[mod] * np.ones(val_snr_mod_samples, dtype=int)
-        # Increment the label array indices
-        train_labels_idx += train_snr_mod_samples
-        test_labels_idx += val_snr_mod_samples
 
-# Training dataset structure
-train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    train_img_dir,
-    labels=train_labels.tolist(),
-    label_mode='int',
-    validation_split=0.2,
-    subset="training",
-    seed=123,
-    image_size=(img_height, img_width),
-    batch_size=batch_size,
-    shuffle=False)
+# === Training ===
 
-# Validation dataset structure
-val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    train_img_dir,
-    labels=train_labels.tolist(),
-    label_mode='int',
-    validation_split=0.2,
-    subset="training",
-    seed=123,
-    image_size=(img_height, img_width),
-    batch_size=batch_size,
-    shuffle=False)
+# Parameters
+epochs = 5
 
-# Test dataset structure
-test_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    test_img_dir,
-    labels=test_labels.tolist(),
-    label_mode='int',
-    seed=123,
-    shuffle=True,
-    image_size=(img_height, img_width),
-    batch_size=batch_size)
+# Create model
+model = vgg16(img_height, img_width, img_channels, std_input=True)
+
+# Print model summary
+model.summary()
+
+# Compile model
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
+
+# Train model
+#TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
+history = model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds)
+
+# Save Model
+if not os.path.isdir("trained_models"):
+    os.makedirs('trained_models')
+model.save('trained_models/vgg-16-tl-ds1-14-5-dropout-1st')
+
+# Save training history
+os.makedirs('history')
+train_accuracy = history.history['accuracy']
+val_accuracy = history.history['val_accuracy']
+train_loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+np.savetxt('history/train_accuracy.csv', train_accuracy, delimiter=',', fmt='%d', header='Training Accuracy')
+np.savetxt('history/val_accuracy.csv', val_accuracy, delimiter=',', fmt='%d', header='Validation Accuracy')
+np.savetxt('history/train_loss.csv', train_loss, delimiter=',', fmt='%d', header='Training Loss')
+np.savetxt('history/val_loss.csv', val_loss, delimiter=',', fmt='%d', header='Validation Loss')
+
+# Save history as dictionary
+with open('history/trainHistoryDict/vgg-16-tl-ds1-14-5-dropout-1st', 'wb') as file_pi:
+    pickle.dump(history.history, file_pi)
+
+# === Inference ===
+# Import model
+model = keras.models.load_model('trained_models/vgg-16-tl-ds1-14-5-dropout-1st')
 
 # Make predictions
 print("Inference started")

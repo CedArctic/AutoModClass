@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+# Plots Accuracy and Loss timeseries across epochs in a side by side plot
 def plotAccLoss(model_name, train_accuracy, val_accuracy, train_loss, val_loss):
     # Epochs
     epochs_range = np.arange(len(train_accuracy))
