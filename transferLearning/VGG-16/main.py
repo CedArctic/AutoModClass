@@ -2,8 +2,8 @@ import numpy as np
 import os
 import pathlib
 import pickle
-import PIL
-import PIL.Image
+# import PIL
+# import PIL.Image
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
@@ -20,7 +20,7 @@ train_img_count = len(list(train_img_dir.glob('*/*/*.png')))
 
 # Model Parameters
 batch_size = 32
-epochs = 100
+epochs = 5
 img_height = 224
 img_width = 224
 img_channels = 3
@@ -112,8 +112,11 @@ vgg16_model.trainable = False
 # Flatten, dense and softmax layers
 flat_layer = tf.keras.layers.Flatten()
 dense1_layer = tf.keras.layers.Dense(100, activation='relu')
+dropout1_layer = tf.keras.layers.Dropout(0.25)
 dense2_layer = tf.keras.layers.Dense(100, activation='relu')
+dropout2_layer = tf.keras.layers.Dropout(0.25)
 dense3_layer = tf.keras.layers.Dense(50, activation='relu')
+dropout3_layer = tf.keras.layers.Dropout(0.25)
 softmax_layer = tf.keras.layers.Dense(8, activation='softmax')
 
 # Build full model and print its summary
@@ -121,15 +124,13 @@ full_model = tf.keras.Sequential([vgg16_model, flat_layer, dense1_layer, dense2_
 full_model.summary()
 
 # Compile and train model
-full_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                   loss=tf.keras.losses.SparseCategoricalCrossentropy,
-                   metrics=[tf.keras.metrics.Accuracy])
+full_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
 #TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
 history = full_model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds)
 
 # Save Model
 os.makedirs('trained_model')
-full_model.save('trained_model/vgg-16-tl-ds1-13-5')
+full_model.save('trained_model/vgg-16-tl-ds1-14-5-dropout-1st')
 
 # Save training history
 os.makedirs('history')
@@ -138,11 +139,11 @@ val_accuracy = history.history['val_accuracy']
 train_loss = history.history['loss']
 val_loss = history.history['val_loss']
 
-np.savetxt('history/train_accuracy.csv', [train_accuracy], delimiter=',', fmt='%d', header='Training Accuracy')
-np.savetxt('history/val_accuracy.csv', [val_accuracy], delimiter=',', fmt='%d', header='Validation Accuracy')
-np.savetxt('history/train_loss.csv', [train_loss], delimiter=',', fmt='%d', header='Training Loss')
-np.savetxt('history/val_loss.csv', [val_loss], delimiter=',', fmt='%d', header='Validation Loss')
+np.savetxt('history/train_accuracy.csv', train_accuracy, delimiter=',', fmt='%d', header='Training Accuracy')
+np.savetxt('history/val_accuracy.csv', val_accuracy, delimiter=',', fmt='%d', header='Validation Accuracy')
+np.savetxt('history/train_loss.csv', train_loss, delimiter=',', fmt='%d', header='Training Loss')
+np.savetxt('history/val_loss.csv', val_loss, delimiter=',', fmt='%d', header='Validation Loss')
 
 # Save history as dictionary
-with open('history/trainHistoryDict', 'wb') as file_pi:
+with open('history/trainHistoryDict/vgg-16-tl-ds1-14-5-dropout-1st', 'wb') as file_pi:
     pickle.dump(history.history, file_pi)

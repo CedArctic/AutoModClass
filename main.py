@@ -2,10 +2,12 @@ import numpy as np
 import os
 import pickle
 import pathlib
+import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 from tensorflow import keras
 from utils.plotting import plotAccLoss
+import seaborn as sn
 
 # Import model
 model = keras.models.load_model('transferLearning/VGG-16/trained_model/vgg-16-tl-ds1-13-5')
@@ -54,14 +56,18 @@ val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     # subset="training",
     # seed=123,
     image_size=(img_height, img_width),
-    batch_size=batch_size)
+    batch_size=batch_size,
+    shuffle=False)
 
 # Make predictions
+print("Inference started")
 predictions = model.predict(val_ds)
 
 # Plot confusion matrix
-confusion_matrix(val_labels, predictions)
+cm = confusion_matrix(val_labels, predictions.argmax(axis=1))
+
+sn.heatmap(cm, annot=True, fmt='g')
 
 # Plot training and validation accuracy and losses
-history = pickle.load(open('transferLearning/VGG-16/trainHistoryDict'), "rb")
+history = pickle.load(open('transferLearning/VGG-16/history/trainHistoryDict', "rb"))
 plotAccLoss("VGG-16", history['accuracy'], history['val_accuracy'], history['loss'], history['val_loss'])
