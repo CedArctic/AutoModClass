@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 # Loads data off HDD
-def load_data(mod_schemes, snrs, img_height, img_width, batch_size, normalize):
+def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
     # === Parameters ===
     # Dataset directories
     train_img_dir = pathlib.Path('dataset/training')

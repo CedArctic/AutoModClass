@@ -28,7 +28,7 @@ snrs.sort()
 
 # Load data
 #TODO: Separate method for test datasets loading to improve performance
-train_ds, val_ds, test_ds, test_labels = load_data(mod_schemes, snrs, img_height, img_width, batch_size, normalize=True)
+train_ds, val_ds, test_ds, test_labels = load_data(mod_schemes, snrs, img_height, img_width, batch_size)
 
 # Dataset caching and prefetching
 AUTOTUNE = tf.data.AUTOTUNE
