@@ -43,10 +43,12 @@ def vgg16(img_height, img_width, img_channels, std_input):
     if std_input:
         # With Standardization Layer ([0,255] -> [0,1])
         std_layer = tf.keras.layers.experimental.preprocessing.Rescaling(1./255)
-        model_layers = [in_layer, std_layer, vgg16_model, flat_layer, dense1_layer, dense2_layer, dense3_layer, softmax_layer]
+        model_layers = [in_layer, std_layer, vgg16_model, flat_layer, dense1_layer, dropout1_layer, dense2_layer,
+                        dropout2_layer, dense3_layer, dropout3_layer, softmax_layer]
     else:
         # Without Standardization Layer
-        model_layers = [in_layer, vgg16_model, flat_layer, dense1_layer, dense2_layer, dense3_layer, softmax_layer]
+        model_layers = [in_layer, vgg16_model, flat_layer, dense1_layer, dropout1_layer, dense2_layer,
+                        dropout2_layer, dense3_layer, dropout3_layer, softmax_layer]
 
 
     # Build full model and print its summary
