@@ -51,7 +51,7 @@ for images, labels in train_ds.take(1):
 epochs = 5
 
 # Create model
-model = vgg16(img_height, img_width, img_channels, std_input=True)
+model = vgg16(img_height, img_width, std_input=True)
 
 # Print model summary
 model.summary()
