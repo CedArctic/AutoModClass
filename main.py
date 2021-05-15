@@ -81,7 +81,9 @@ np.savetxt('history/train_loss.csv', train_loss, delimiter=',', fmt='%d', header
 np.savetxt('history/val_loss.csv', val_loss, delimiter=',', fmt='%d', header='Validation Loss')
 
 # Save history as dictionary
-with open('history/trainHistoryDict/vgg-16-tl-ds1-14-5-dropout-1st', 'wb') as file_pi:
+if not os.path.isdir("history/vgg-16-tl-ds1-14-5-dropout-1st"):
+    os.makedirs('history/vgg-16-tl-ds1-14-5-dropout-1st')
+with open('history/vgg-16-tl-ds1-14-5-dropout-1st/trainHistoryDict', 'wb') as file_pi:
     pickle.dump(history.history, file_pi)
 
 # === Inference ===
