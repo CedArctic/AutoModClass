@@ -13,12 +13,13 @@ from utils.data import load_data
 from transferLearning.vgg16 import vgg16
 
 # === Load Data ===
-
+MODEL_NAME = 'VGG-frozen-Dropout-batch-100-STD-input'
+print('Training Model: {}'.format(MODEL_NAME))
 # Dataset Parameters
 img_height = 224
 img_width = 224
 img_channels = 3
-batch_size = 32
+batch_size = 100
 
 # Modulation Schemes and SNRs sorted alphanumerically (the way TensorFlow reads training samples)
 mod_schemes = ['16APSK', '16PAM', '16QAM', '4PAM', '64APSK', '64QAM', '8PSK', 'QPSK']
@@ -32,8 +33,8 @@ train_ds, val_ds, test_ds, test_labels = load_data(mod_schemes, snrs, img_height
 
 # Dataset caching and prefetching
 AUTOTUNE = tf.data.AUTOTUNE
-train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
-val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
+val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
 # Explore Dataset
 plt.figure(figsize=(10, 10))
@@ -48,7 +49,7 @@ for images, labels in train_ds.take(1):
 # === Training ===
 
 # Parameters
-epochs = 5
+epochs = 20
 
 # Create model
 model = vgg16(img_height, img_width, std_input=True)
@@ -59,17 +60,21 @@ model.summary()
 # Compile model
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
 
+# Add early stopping
+early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
+
 # Train model
 #TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
-history = model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds)
+history = model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds, callbacks=[early_stop])
 
 # Save Model
 if not os.path.isdir("trained_models"):
     os.makedirs('trained_models')
-model.save('trained_models/vgg-16-tl-ds1-14-5-dropout-1st')
+model.save('trained_models/{}'.format(MODEL_NAME))
 
 # Save training history
-os.makedirs('history')
+if not os.path.isdir("history"):
+    os.makedirs('history')
 train_accuracy = history.history['accuracy']
 val_accuracy = history.history['val_accuracy']
 train_loss = history.history['loss']
@@ -81,14 +86,14 @@ np.savetxt('history/train_loss.csv', train_loss, delimiter=',', fmt='%d', header
 np.savetxt('history/val_loss.csv', val_loss, delimiter=',', fmt='%d', header='Validation Loss')
 
 # Save history as dictionary
-if not os.path.isdir("history/vgg-16-tl-ds1-14-5-dropout-1st"):
-    os.makedirs('history/vgg-16-tl-ds1-14-5-dropout-1st')
-with open('history/vgg-16-tl-ds1-14-5-dropout-1st/trainHistoryDict', 'wb') as file_pi:
+if not os.path.isdir("history/{}".format(MODEL_NAME)):
+    os.makedirs('history/{}'.format(MODEL_NAME))
+with open('history/{}/trainHistoryDict'.format(MODEL_NAME), 'wb') as file_pi:
     pickle.dump(history.history, file_pi)
 
 # === Inference ===
 # Import model
-model = keras.models.load_model('trained_models/vgg-16-tl-ds1-14-5-dropout-1st')
+model = keras.models.load_model('trained_models/{}'.format(MODEL_NAME))
 
 # Make predictions
 print("Inference started")
@@ -99,5 +104,5 @@ cm = confusion_matrix(test_labels, predictions.argmax(axis=1))
 sn.heatmap(cm, annot=True, fmt='g')
 
 # Plot training and validation accuracy and losses
-history = pickle.load(open('transferLearning/VGG-16/history/trainHistoryDict', "rb"))
-plotAccLoss("VGG-16", history['accuracy'], history['val_accuracy'], history['loss'], history['val_loss'])
+history = pickle.load(open('history/{}/trainHistoryDict'.format(MODEL_NAME), "rb"))
+plotAccLoss(MODEL_NAME, history['accuracy'], history['val_accuracy'], history['loss'], history['val_loss'])
