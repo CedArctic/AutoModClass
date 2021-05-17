@@ -50,7 +50,7 @@ def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
         subset="training",
         image_size=(img_height, img_width),
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=True,
         seed=123)
 
     # Validation dataset structure
@@ -59,10 +59,10 @@ def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
         labels=train_labels.tolist(),
         label_mode='int',
         validation_split=0.2,
-        subset="training",
+        subset="validation",
         image_size=(img_height, img_width),
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=True,
         seed=123)
 
     # Test dataset structure
@@ -71,6 +71,7 @@ def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
         labels=test_labels.tolist(),
         label_mode='int',
         image_size=(img_height, img_width),
-        batch_size=batch_size)
+        batch_size=batch_size,
+        shuffle=False)
 
     return train_ds, val_ds, test_ds, test_labels
