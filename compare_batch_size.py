@@ -19,8 +19,8 @@ for bs in batch_sizes:
 
     plt.subplot(1, 2, 1)
     plt.ylim(0, 1)
-    plt.plot(iterations, history['val_accuracy'], label=curr_model)
-    plt.legend()
+    plt.plot(iterations, history['val_accuracy'], label='{}'.format(bs))
+    plt.legend(title="batch size")
     plt.xlabel('Iterations')
     plt.ylabel('Accuracy')
     plt.title('Validation Accuracy')
@@ -34,8 +34,8 @@ for bs in batch_sizes:
     iterations = epochs_range * iter_per_epoch
     # Loss
     plt.subplot(1, 2, 2)
-    plt.plot(iterations, history['val_loss'], label='{} Training Loss'.format(curr_model))
-    plt.legend()
+    plt.plot(iterations, history['val_loss'], label='{}'.format(bs))
+    plt.legend(title="batch size")
     plt.xlabel('Iterations')
     plt.ylabel('Loss')
     plt.title('Validation Loss')
