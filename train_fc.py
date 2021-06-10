@@ -28,14 +28,15 @@ snrs.sort()
 # Load data
 #
 data = 'dataset4_cum'
-X = np.zeros((480000, 18))
+X = np.zeros((480000, 16))
 y = np.zeros((480000, 1))
 for index, modulation in enumerate(mod_schemes):
     for i in range(15000):
-        # nuke complex zeros
         cums = np.fromfile("{}/{}/{}.cum", np.complex128)
         real = cums.real
         imag = cums.imag
+        # Remove zero imaginary components of C21 and C60 - they are real numbers
+        imag = np.delete(imag, (1, 4))
         y[index*15000+i] = index
         X[index*15000+i, :] = np.concatenate(cums.real, cums.imag)
 # === Training ===
