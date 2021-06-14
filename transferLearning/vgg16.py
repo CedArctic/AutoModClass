@@ -38,25 +38,26 @@ def vgg16(img_height, img_width, std_input):
     vgg16_model.trainable = False
 
     # Flatten, dense and softmax layers
+    gap_layer = tf.keras.layers.GlobalAveragePooling2D(data_format='channels_last')
     flat_layer = tf.keras.layers.Flatten()
+    #BN_layer = tf.keras.layers.BatchNormalization()
     dense1_layer = tf.keras.layers.Dense(100, activation='relu')
     dropout1_layer = tf.keras.layers.Dropout(0.25)
-    dense2_layer = tf.keras.layers.Dense(100, activation='relu')
-    dropout2_layer = tf.keras.layers.Dropout(0.25)
-    dense3_layer = tf.keras.layers.Dense(50, activation='relu')
-    dropout3_layer = tf.keras.layers.Dropout(0.25)
+    dense2_layer = tf.keras.layers.Dense(50, activation='relu')
     softmax_layer = tf.keras.layers.Dense(8, activation='softmax')
 
     # Model Layers
     if std_input:
         # With Standardization Layer ([0,255] -> [0,1])
         std_layer = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255)
-        model_layers = [in_layer, std_layer, vgg16_model, flat_layer, dense1_layer, dropout1_layer, dense2_layer,
-                        dropout2_layer, dense3_layer, dropout3_layer, softmax_layer]
+        model_layers = [in_layer, std_layer, vgg16_model,
+                        gap_layer, dense1_layer, dropout1_layer, dense2_layer,
+                        softmax_layer]
     else:
         # Without Standardization Layer
-        model_layers = [in_layer, vgg16_model, flat_layer, dense1_layer, dropout1_layer, dense2_layer,
-                        dropout2_layer, dense3_layer, dropout3_layer, softmax_layer]
+        model_layers = [in_layer, vgg16_model,
+                        gap_layer, dense1_layer, dropout1_layer, dense2_layer,
+                        softmax_layer]
 
     # Build full model and print its summary
     full_model = tf.keras.Sequential(model_layers)

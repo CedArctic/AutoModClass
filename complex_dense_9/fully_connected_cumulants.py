@@ -13,15 +13,19 @@ def fc_cum():
     enables standardization.
     :return: Returns a TensorFlow model which still needs to be compiled and fitted afterwards.
     """
-
-    dense1_layer = keras.layers.Dense(100, activation='relu')
-    dropout1_layer = keras.layers.Dropout(0.25)
-    dense2_layer = keras.layers.Dense(50, activation='relu')
-    softmax_layer = keras.layers.Dense(8, activation='softmax')
-    model_layers = [dense1_layer, dense2_layer, softmax_layer]
-
     # Build full model and print its summary
-    full_model = keras.Sequential(model_layers)
+    full_model = keras.Sequential()
+
+    full_model.add(keras.layers.Input(shape=(18,)))
+    full_model.add(keras.layers.Dense(32))
+    full_model.add(keras.layers.BatchNormalization(momentum=0.9))
+    full_model.add(keras.layers.ReLU())
+    full_model.add(keras.layers.Dense(16))
+    full_model.add(keras.layers.BatchNormalization(momentum=0.9))
+    full_model.add(keras.layers.ReLU())
+    full_model.add(keras.layers.Dense(8, activation='softmax'))
+
+
     # full_model.summary()
 
     return full_model

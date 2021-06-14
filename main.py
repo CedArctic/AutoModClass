@@ -12,8 +12,9 @@ from utils.plotting import plotAccLoss
 from utils.data import load_data
 from transferLearning.vgg16 import vgg16
 
+os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 # === Load Data ===
-MODEL_NAME = 'VGG-frozen-Dropout-batch-100-STD-input'
+MODEL_NAME = 'VGG-frozen-Dropout-batch-100-GAP-DATASET-3-DYNAMIC'
 print('Training Model: {}'.format(MODEL_NAME))
 # Dataset Parameters
 img_height = 224
@@ -52,7 +53,7 @@ for images, labels in train_ds.take(1):
 epochs = 20
 
 # Create model
-model = vgg16(img_height, img_width, std_input=True)
+model = vgg16(img_height, img_width, std_input=False)
 
 # Print model summary
 model.summary()

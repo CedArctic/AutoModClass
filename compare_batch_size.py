@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-model = 'fc-1-NO-BN'
+model = 'fc-2'
 batch_sizes = [64, 128, 256, 512, 1024]
 dataset_size = 480000 * 0.8
 # Accuracy
