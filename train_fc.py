@@ -42,8 +42,9 @@ def train_fc(bs, ep):
                 cums = np.fromfile("{}/{}/{}_db/{}.cum".format(data, modulation, snr, i), np.complex128)
                 real = cums.real
                 imag = cums.imag
+                # imag = np.delete(imag, (1, 4))
                 y[index*60000+15000*index_snr+i] = index
-                X[index*60000+15000*index_snr+i] = np.concatenate((cums.real, cums.imag))
+                X[index*60000+15000*index_snr+i] = np.concatenate((real, imag))
 
     X, y = shuffle(X, y, random_state=123)
     # === Training ===
