@@ -4,13 +4,14 @@ import pickle
 import pathlib
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow import keras
 import seaborn as sn
 from sklearn.utils import shuffle
 
 from utils.plotting import plotAccLoss
-from utils.data import load_data
+from utils.data import load_data, get_dataset, get_selected_dataset
 from hybrid_model import hybrid_model
 
 
@@ -34,28 +35,37 @@ snrs = [0, 5, 10, 15]
 snrs.sort()
 
 # Load data
-#TODO: Separate method for test datasets loading to improve performance
-train_ds, val_ds, test_ds, test_labels = load_data(mod_schemes, snrs, img_height, img_width, batch_size)
-
-data = 'dataset4_cum'
-X = np.zeros((480000, 18))
-y = np.zeros((480000, 1))
-for index, modulation in enumerate(mod_schemes):
-    for index_snr, snr in enumerate(snrs):
-        print("{},{}db".format(modulation, snr))
-        for i in range(15000):
-            # nuke complex zeros
-            cums = np.fromfile("{}/{}/{}_db/{}.cum".format(data, modulation, snr, i), np.complex128)
-            real = cums.real
-            imag = cums.imag
-            y[index*60000+15000*index_snr+i] = index
-            X[index*60000+15000*index_snr+i] = np.concatenate((cums.real, cums.imag))
-
-train_dataset = tf.data.Dataset.from_tensor_slices((X, y))
+# #TODO: Separate method for test datasets loading to improve performance
+# train_ds, val_ds, test_ds, test_labels = load_data(mod_schemes, snrs, img_height, img_width, batch_size)
+#
+# data = 'dataset4_cum'
+# X = np.zeros((480000, 18))
+# y = np.zeros((480000, 1))
+# for index, modulation in enumerate(mod_schemes):
+#     for index_snr, snr in enumerate(snrs):
+#         print("{},{}db".format(modulation, snr))
+#         for i in range(15000):
+#             # nuke complex zeros
+#             cums = np.fromfile("{}/{}/{}_db/{}.cum".format(data, modulation, snr, i), np.complex128)
+#             real = cums.real
+#             imag = cums.imag
+#             y[index*60000+15000*index_snr+i] = index
+#             X[index*60000+15000*index_snr+i] = np.concatenate((cums.real, cums.imag))
+#
+# train_dataset = tf.data.Dataset.from_tensor_slices((X, y))
 
 
 # Dataset caching and prefetching
 AUTOTUNE = tf.data.AUTOTUNE
+train_ds = get_dataset(['trainds/{}_{}.tfrecords'.format(mod, snr) for mod in mod_schemes for snr in snrs], ordered=False)
+train_ds = train_ds.shuffle(10000, reshuffle_each_iteration=True)
+val_ds = get_dataset(['valds/{}_{}.tfrecords'.format(mod, snr) for mod in mod_schemes for snr in snrs], ordered=False)
+val_ds = val_ds.shuffle(10000, reshuffle_each_iteration=True)
+
+
+train_ds = train_ds.batch(batch_size)
+val_ds = val_ds.batch(batch_size)
+# train_ds = train_ds.repeat()
 train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
@@ -76,10 +86,18 @@ model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=tf.k
 
 # Add early stopping
 early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-
+if not os.path.isdir("checkpoints"):
+    os.makedirs('checkpoints')
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=f"checkpoints/{MODEL_NAME}_BEST",
+    save_weights_only=False,
+    monitor='val_loss',
+    mode='min',
+    save_best_only=True)
 # Train model
 #TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
-history = model.fit({'image': train_ds, 'cumulants': cumulants}, batch_size=batch_size, epochs=epochs, validation_data=val_ds, callbacks=[early_stop])
+history = model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds,
+                    callbacks=[early_stop, model_checkpoint_callback])
 
 # Save Model
 if not os.path.isdir("trained_models"):
