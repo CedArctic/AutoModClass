@@ -14,7 +14,7 @@ from transferLearning.vgg16 import vgg16
 
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 # === Load Data ===
-MODEL_NAME = 'VGG-frozen-Dropout-batch-100-GAP-DATASET-3-DYNAMIC'
+MODEL_NAME = 'VGG-BRANCHES'
 print('Training Model: {}'.format(MODEL_NAME))
 # Dataset Parameters
 img_height = 224
@@ -50,23 +50,31 @@ for images, labels in train_ds.take(1):
 # === Training ===
 
 # Parameters
-epochs = 20
+epochs = 30
 
 # Create model
 model = vgg16(img_height, img_width, std_input=False)
 
 # Print model summary
 model.summary()
-
+keras.utils.plot_model(model, "current_cnn.png", show_shapes=True)
 # Compile model
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
 
 # Add early stopping
 early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
-
+if not os.path.isdir("checkpoints"):
+    os.makedirs('checkpoints')
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=f"checkpoints/{MODEL_NAME}_BEST",
+    save_weights_only=False,
+    monitor='val_loss',
+    mode='min',
+    save_best_only=True)
 # Train model
 #TODO: Perhaps add ModelCheckpoint, Tensorboard, EarlyStopping and other CallBack functions
-history = model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds, callbacks=[early_stop])
+history = model.fit(train_ds, batch_size=batch_size, epochs=epochs, validation_data=val_ds,
+                    callbacks=[early_stop, model_checkpoint_callback])
 
 # Save Model
 if not os.path.isdir("trained_models"):
