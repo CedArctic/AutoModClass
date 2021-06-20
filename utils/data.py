@@ -3,6 +3,76 @@ import pathlib
 import numpy as np
 import tensorflow as tf
 
+
+def get_selected_dataset(ds, X_indices_np):
+    # Make a tensor of type tf.int64 to match the one by Dataset.enumerate().
+    X_indices_ts = tf.constant(X_indices_np, dtype=tf.int64)
+
+    def is_index_in(index, rest):
+        # Returns True if the specified index value is included in X_indices_ts.
+        #
+        # '==' compares the specified index value with each values in X_indices_ts.
+        # The result is a boolean tensor, looks like [ False, True, ..., False ].
+        # reduce_any() returns Ture if True is included in the specified tensor.
+        return tf.math.reduce_any(index == X_indices_ts)
+
+    def drop_index(index, rest):
+        return rest
+
+    # Dataset.enumerate() is similter to Python's enumerate().
+    # The method adds indices to each elements. Then, the elements are filtered
+    # by using the specified indices. Finally unnecessary indices are dropped.
+    selected_ds = ds \
+        .enumerate() \
+        .filter(is_index_in) \
+        .map(drop_index)
+    return selected_ds
+
+
+def parse_tfr_element(element):
+    # use the same structure as above; it's kinda an outline of the structure we now want to create
+    data = {
+        'snr': tf.io.FixedLenFeature([], tf.int64),
+        'mod': tf.io.FixedLenFeature([], tf.int64),
+        'raw_image': tf.io.FixedLenFeature([], tf.string),
+        'cumulants': tf.io.FixedLenFeature([], tf.string),
+    }
+
+    content = tf.io.parse_single_example(element, data)
+
+    snr = content['snr']
+    mod = content['mod']
+    cumulants = content['cumulants']
+    raw_image = content['raw_image']
+
+    # get our 'feature'-- our image -- and reshape it appropriately
+    img = tf.io.parse_tensor(raw_image, out_type=tf.string)
+    cumulants = tf.io.parse_tensor(cumulants, out_type=tf.float64)
+    # TODO: KEEP IMG DIMS IN TFRECORDS ENTRY
+    # img = tf.reshape(img, shape=img_resolution)
+    img = tf.io.decode_png(img, channels=3)
+    cumulants = tf.reshape(cumulants, shape=(18, 1))
+    inputs = (cumulants, img)
+    outputs = mod
+    return inputs, outputs
+
+
+def get_dataset(filenames, ordered=False):
+    # create the dataset
+    AUTOTUNE = tf.data.AUTOTUNE
+    ignore_order = tf.data.Options()
+    if not ordered:
+        ignore_order.experimental_deterministic = False  # disable order, increase speed
+    dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
+    dataset = dataset.with_options(ignore_order)
+    # pass every single feature through our mapping function
+    dataset = dataset.map(
+        parse_tfr_element, num_parallel_calls=AUTOTUNE
+    )
+
+    return dataset
+
+
 # Loads data off HDD
 def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
     # === Parameters ===
