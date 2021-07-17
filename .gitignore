@@ -1,0 +1,11 @@
+*.png
+checkpoints
+history
+trainds
+valds
+dataset
+trained_models
+*/__pycache__/*
+__pycache__
+venv
+transferLearning/VGG-16/
