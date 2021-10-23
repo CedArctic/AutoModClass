@@ -7,7 +7,7 @@ def szegedy_schedule(epoch, lr):
     if epoch == 1:
         pass
     elif epoch % 2 == 1:
-        lr = 0.94 * lr
+        lr = 0.7 * lr
     return lr
 
 
@@ -34,11 +34,11 @@ def step_decay_schedule(epoch, lr):
     lr = initial_lr * (drop ** floor(epoch / epochs_drop))
     return lr
 
-
+# TODO:ALSO TRY REVERSE HERE
 def triangular_cyclic_schedule(epoch, lr):
     # Minimum and Maximum Learning Rates
     lr_min = 0.00001
-    lr_max = 0.001
+    lr_max = 0.0001
 
     # Number of epochs for a cycle
     stepsize = 10

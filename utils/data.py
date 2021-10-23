@@ -2,6 +2,7 @@ import os
 import pathlib
 import numpy as np
 import tensorflow as tf
+from hybrid_dataset_from_directory import hybrid_dataset_from_directory
 
 
 def get_selected_dataset(ds, X_indices_np):
@@ -56,6 +57,32 @@ def parse_tfr_element(element):
     outputs = mod
     return inputs, outputs
 
+def parse_tfr_img_element(element):
+    # use the same structure as above; it's kinda an outline of the structure we now want to create
+    data = {
+        'snr': tf.io.FixedLenFeature([], tf.int64),
+        'mod': tf.io.FixedLenFeature([], tf.int64),
+        'raw_image': tf.io.FixedLenFeature([], tf.string),
+        'cumulants': tf.io.FixedLenFeature([], tf.string),
+    }
+
+    content = tf.io.parse_single_example(element, data)
+
+    snr = content['snr']
+    mod = content['mod']
+    cumulants = content['cumulants']
+    raw_image = content['raw_image']
+
+    # get our 'feature'-- our image -- and reshape it appropriately
+    img = tf.io.parse_tensor(raw_image, out_type=tf.string)
+    cumulants = tf.io.parse_tensor(cumulants, out_type=tf.float64)
+    # TODO: KEEP IMG DIMS IN TFRECORDS ENTRY
+    # img = tf.reshape(img, shape=img_resolution)
+    img = tf.io.decode_png(img, channels=3)
+    inputs = img
+    outputs = mod
+    return inputs, outputs
+
 
 def get_dataset(filenames, ordered=False):
     # create the dataset
@@ -68,6 +95,21 @@ def get_dataset(filenames, ordered=False):
     # pass every single feature through our mapping function
     dataset = dataset.map(
         parse_tfr_element, num_parallel_calls=AUTOTUNE
+    )
+
+    return dataset
+
+def get_image_dataset(filenames, ordered=False):
+    # create the dataset
+    AUTOTUNE = tf.data.AUTOTUNE
+    ignore_order = tf.data.Options()
+    if not ordered:
+        ignore_order.experimental_deterministic = False  # disable order, increase speed
+    dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
+    dataset = dataset.with_options(ignore_order)
+    # pass every single feature through our mapping function
+    dataset = dataset.map(
+        parse_tfr_img_element, num_parallel_calls=AUTOTUNE
     )
 
     return dataset
@@ -138,6 +180,51 @@ def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
 
     # Test dataset structure
     test_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        test_img_dir,
+        # labels=test_labels.tolist(),
+        label_mode='int',
+        image_size=(img_height, img_width),
+        batch_size=batch_size,
+        shuffle=False)
+
+    # Get testset labels
+    test_labels = np.concatenate([y for x, y in test_ds], axis=0)
+
+    return train_ds, val_ds, test_ds, test_labels
+
+# Loads data off HDD
+def load_hybrid_data(mod_schemes, snrs, img_height, img_width, batch_size):
+    # === Parameters ===
+    # Dataset directories
+    train_img_dir = pathlib.Path('dataset/training')
+    test_img_dir = pathlib.Path('dataset/test')
+
+    # Training dataset structure
+    train_ds = hybrid_dataset_from_directory(
+        train_img_dir,
+        # labels=train_labels.tolist(),
+        label_mode='int',
+        validation_split=0.2,
+        subset="training",
+        image_size=(img_height, img_width),
+        batch_size=batch_size,
+        shuffle=True,
+        seed=123)
+
+    # Validation dataset structure
+    val_ds = hybrid_dataset_from_directory(
+        train_img_dir,
+        # labels=train_labels.tolist(),
+        label_mode='int',
+        validation_split=0.2,
+        subset="validation",
+        image_size=(img_height, img_width),
+        batch_size=batch_size,
+        shuffle=True,
+        seed=123)
+
+    # Test dataset structure
+    test_ds = hybrid_dataset_from_directory(
         test_img_dir,
         # labels=test_labels.tolist(),
         label_mode='int',
