@@ -14,7 +14,8 @@ ALLOWLIST_FORMATS_IMAGE = ('.bmp', '.gif', '.jpeg', '.jpg', '.png')
 ALLOWLIST_FORMATS_CUMULANTS = ('.cum')
 
 
-def hybrid_dataset_from_directory(directory,
+def hybrid_dataset_from_directory(img_directory,
+                                  cum_directory,
                                  labels='inferred',
                                  label_mode='int',
                                  class_names=None,
@@ -164,11 +165,9 @@ def hybrid_dataset_from_directory(directory,
   if seed is None:
     seed = np.random.randint(1e6)
 
-  img_directory = directory + '/images'
-  cum_directory = directory + '/cumulants'
 
   # GET IMAGE PATHS
-  image_paths, labels, class_names = dataset_utils.index_directory(
+  image_paths, image_labels, class_names = dataset_utils.index_directory(
       img_directory,
       labels,
       formats=ALLOWLIST_FORMATS_IMAGE,
@@ -177,7 +176,7 @@ def hybrid_dataset_from_directory(directory,
       seed=seed,
       follow_links=follow_links)
   # GET CUMULANT PATHS
-  cum_paths, labels, class_names = dataset_utils.index_directory(
+  cum_paths, cumulant_labels, class_names = dataset_utils.index_directory(
       cum_directory,
       labels,
       formats=ALLOWLIST_FORMATS_CUMULANTS,
@@ -192,10 +191,10 @@ def hybrid_dataset_from_directory(directory,
         'When passing `label_mode="binary", there must exactly 2 classes. '
         'Found the following classes: %s' % (class_names,))
 
-  image_paths, labels = dataset_utils.get_training_or_validation_split(
-      image_paths, labels, validation_split, subset)
-  cum_paths, labels = dataset_utils.get_training_or_validation_split(
-      cum_paths, labels, validation_split, subset)
+  image_paths, image_labels = dataset_utils.get_training_or_validation_split(
+      image_paths, image_labels, validation_split, subset)
+  cum_paths, cumulant_labels = dataset_utils.get_training_or_validation_split(
+      cum_paths, cumulant_labels, validation_split, subset)
   if not image_paths:
     raise ValueError('No images found.')
 
@@ -204,7 +203,7 @@ def hybrid_dataset_from_directory(directory,
       cum_paths=cum_paths,
       image_size=image_size,
       num_channels=num_channels,
-      labels=labels,
+      labels=image_labels,
       label_mode=label_mode,
       num_classes=len(class_names),
       interpolation=interpolation,
@@ -237,10 +236,10 @@ def paths_and_labels_to_dataset(image_paths,
       lambda x: load_image(x, *args))
   path_ds_cum = tf.data.Dataset.from_tensor_slices(cum_paths)
   cum_ds = path_ds_cum.map(
-      lambda x: load_cum(x))
+      lambda x: tf.py_function(func=load_cum, inp=[x], Tout=tf.float64))
   if label_mode:
     label_ds = dataset_utils.labels_to_dataset(labels, label_mode, num_classes)
-    hybrid_ds = tf.data.Dataset.zip((img_ds, cum_ds, label_ds))
+    hybrid_ds = tf.data.Dataset.zip(((cum_ds, img_ds), label_ds))
   return hybrid_ds
 
 
@@ -260,5 +259,9 @@ def load_image(path, image_size, num_channels, interpolation,
 
 
 def load_cum(path):
-    cumulants = np.fromfile(path, np.complex128)
-    return cumulants
+
+    cumulants = np.fromfile(path.numpy(), np.complex128)
+    real = cumulants.real
+    imaginary = cumulants.imag
+    cum = tf.convert_to_tensor(np.concatenate((real, imaginary)), np.float64)
+    return cum
