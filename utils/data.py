@@ -2,7 +2,7 @@ import os
 import pathlib
 import numpy as np
 import tensorflow as tf
-from hybrid_dataset_from_directory import hybrid_dataset_from_directory
+from utils.hybrid_dataset_from_directory import hybrid_dataset_from_directory
 
 
 def get_selected_dataset(ds, X_indices_np):
@@ -196,12 +196,14 @@ def load_data(mod_schemes, snrs, img_height, img_width, batch_size):
 def load_hybrid_data(mod_schemes, snrs, img_height, img_width, batch_size):
     # === Parameters ===
     # Dataset directories
-    train_img_dir = pathlib.Path('dataset/training')
-    test_img_dir = pathlib.Path('dataset/test')
+    train_img_dir = pathlib.Path('hybrid_dataset/training/images')
+    train_cum_dir = pathlib.Path('hybrid_dataset/training/cumulants')
+    # test_img_dir = pathlib.Path('hybrid_dataset/test')
 
     # Training dataset structure
     train_ds = hybrid_dataset_from_directory(
         train_img_dir,
+        train_cum_dir,
         # labels=train_labels.tolist(),
         label_mode='int',
         validation_split=0.2,
@@ -214,6 +216,7 @@ def load_hybrid_data(mod_schemes, snrs, img_height, img_width, batch_size):
     # Validation dataset structure
     val_ds = hybrid_dataset_from_directory(
         train_img_dir,
+        train_cum_dir,
         # labels=train_labels.tolist(),
         label_mode='int',
         validation_split=0.2,
@@ -223,16 +226,17 @@ def load_hybrid_data(mod_schemes, snrs, img_height, img_width, batch_size):
         shuffle=True,
         seed=123)
 
-    # Test dataset structure
-    test_ds = hybrid_dataset_from_directory(
-        test_img_dir,
-        # labels=test_labels.tolist(),
-        label_mode='int',
-        image_size=(img_height, img_width),
-        batch_size=batch_size,
-        shuffle=False)
-
-    # Get testset labels
-    test_labels = np.concatenate([y for x, y in test_ds], axis=0)
+    test_ds = None
+    # # Test dataset structure
+    # test_ds = hybrid_dataset_from_directory(
+    #     test_img_dir,
+    #     # labels=test_labels.tolist(),
+    #     label_mode='int',
+    #     image_size=(img_height, img_width),
+    #     batch_size=batch_size,
+    #     shuffle=False)
+    test_labels = None
+    # # Get testset labels
+    # test_labels = np.concatenate([y for x, y in test_ds], axis=0)
 
     return train_ds, val_ds, test_ds, test_labels
